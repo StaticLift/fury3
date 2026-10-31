@@ -1,0 +1,625 @@
+<title>Fury³ on PS Vita</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,600;1,800&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a flight-log page under the game's own HUD. The hero is a live software-rendered
+   horizon; below it, wide bands of ink with one column of text and HUD-style data strips. */
+:root {
+  color-scheme: dark;
+  --ink: #0a1f23; --ink2: #0f2c31; --line: #24484d;
+  --fg: #e9eeee; --mute: #a0b7b8;
+  --gold: #ffcd46; --red: #e8323a; --sea: #2c8f8c; --sky: #9a9fd2;
+  --display: "Barlow Condensed", "Arial Narrow", Impact, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", Roboto, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, Menlo, monospace;
+}
+* { box-sizing: border-box }
+body { background: var(--ink); color: var(--fg); font: 400 17px/1.6 var(--body) }
+.wrap { max-width: 980px; margin-inline: auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)) }
+h1, h2, h3 { font-family: var(--display); font-style: italic; text-wrap: balance; margin: 0 }
+h2 { font-size: clamp(34px, 5vw, 50px); font-weight: 800; line-height: 1.05; color: var(--fg) }
+h3 { font-size: 26px; font-weight: 600; line-height: 1.15 }
+p { margin: 0; max-width: 68ch }
+code { font: 400 .88em var(--mono); color: var(--gold) }
+a { color: var(--gold) }
+a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px }
+.label { font: 600 12.5px/1.3 var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--red) }
+
+.hero { position: relative; background: #1b2436; overflow: hidden }
+.hero canvas { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; display: block }
+.hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,31,35,.25) 0%, rgba(10,31,35,.1) 45%, rgba(10,31,35,.92) 100%) }
+.hero .wrap { position: relative; z-index: 1; padding-block: 56px 28px; display: grid; gap: 18px }
+h1 { font-size: clamp(64px, 13vw, 132px); font-weight: 800; line-height: .9; letter-spacing: -.01em; color: #fff; text-shadow: 0 3px 0 rgba(10,31,35,.75) }
+h1 b { color: var(--red); font-weight: 800 }
+h1 sup { color: var(--gold); font-size: .5em; vertical-align: .62em; line-height: 0 }
+.hero p { font-size: 20px; line-height: 1.45; color: #fff; text-shadow: 0 1px 3px rgba(10,31,35,.9) }
+
+.hud { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 10px }
+.hud div { background: rgba(10,31,35,.9); padding: 10px 14px; min-width: 0 }
+.hud dt { font: 600 12px/1.2 var(--mono); letter-spacing: .08em; color: var(--red) }
+.hud dd { margin: 3px 0 0; font: 600 21px/1.2 var(--mono); color: #a9e4c4; font-variant-numeric: tabular-nums }
+dl { margin: 0 }
+
+section { padding-block: 60px 8px }
+section .wrap { display: grid; gap: 22px }
+
+.firsts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 44px; margin-top: 8px }
+.firsts article { display: grid; gap: 6px; min-width: 0; align-content: start }
+.firsts h3 { color: var(--gold) }
+
+.bars { display: grid; gap: 16px; margin-top: 6px }
+.run { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 6px 16px; align-items: center }
+.run .name { font: 600 14px/1.3 var(--mono); color: var(--fg) }
+.run .tracks { display: grid; gap: 4px; min-width: 0 }
+.t { display: grid; grid-template-columns: minmax(0, 1fr) 72px; gap: 10px; align-items: center }
+.t .track { height: 12px; background: var(--ink2) }
+.t .fill { height: 100%; background: var(--sea) }
+.t .fill.busy { background: var(--red) }
+.t .val { font: 600 13px/1 var(--mono); color: var(--mute); font-variant-numeric: tabular-nums }
+.scale { font: 400 12.5px/1.4 var(--mono); color: var(--mute) }
+.key { display: inline-block; width: 12px; height: 12px; vertical-align: -1px; margin-right: 6px }
+
+.cases { display: grid; gap: 0; border-top: 1px solid var(--line) }
+.case { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 26px; padding-block: 16px; border-bottom: 1px solid var(--line) }
+.case > div { min-width: 0; font-size: 15.5px; line-height: 1.5 }
+.case h3 { grid-column: 1 / -1; font-size: 24px; color: var(--fg) }
+.case .label { display: block; margin-bottom: 2px }
+
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 22px; counter-reset: s }
+.steps li { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px 12px; counter-increment: s }
+.steps li::before { content: counter(s); font: 800 italic 52px/.95 var(--display); color: var(--gold) }
+.steps h3 { font-size: 25px }
+.steps p, .steps blockquote { grid-column: 2 }
+blockquote { margin: 0; padding-left: 16px; border-left: 3px solid var(--sea); color: var(--fg); font-size: 16px; max-width: 64ch }
+blockquote cite { display: block; font: 400 13px/1.5 var(--mono); color: var(--mute) }
+
+.reuse { width: 100%; border-collapse: collapse; font-size: 15.5px }
+.scroll { overflow-x: auto }
+.reuse th { text-align: left; font: 600 12.5px/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--red); padding: 8px 14px 8px 0; border-bottom: 1px solid var(--line) }
+.reuse td { padding: 10px 14px 10px 0; border-bottom: 1px solid var(--line); vertical-align: top }
+.reuse td:first-child { font-weight: 600; min-width: 170px }
+.tag { font: 600 12.5px/1.2 var(--mono); white-space: nowrap }
+.tag.all { color: #a9e4c4 } .tag.some { color: var(--gold) } .tag.game { color: var(--red) }
+
+ul.left { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 68ch }
+footer { padding-block: 60px 44px; color: var(--mute); font-size: 14.5px }
+footer p + p { margin-top: 8px }
+
+.hero { cursor: crosshair; touch-action: pan-y }
+.hero canvas#sky { object-fit: cover }
+.scan { position: absolute; inset: 0; z-index: 1; pointer-events: none; background: repeating-linear-gradient(180deg, rgba(10,31,35,0) 0 2px, rgba(10,31,35,.16) 2px 4px) }
+#radar { position: absolute; z-index: 2; top: 18px; right: max(16px, env(safe-area-inset-right, 0px)); width: 104px; height: 104px; image-rendering: pixelated }
+.firing { font: 600 13px/1.3 var(--mono); letter-spacing: .05em; color: #fff; text-shadow: 0 1px 3px rgba(10,31,35,.95) }
+.firing b { color: var(--gold); font-weight: 600 }
+
+figure { margin: 8px 0 0; display: grid; gap: 12px; min-width: 0 }
+figcaption { font-size: 15px; color: var(--mute); max-width: 72ch }
+.diagram { overflow-x: auto; background: var(--ink2); border: 1px solid var(--line); padding: 14px }
+.diagram svg { display: block; width: 100%; min-width: 760px; height: auto; color: var(--fg) }
+.diagram text { font-family: var(--mono); font-size: 12px; fill: currentColor }
+.diagram .t-big { font-family: var(--display); font-style: italic; font-weight: 600; font-size: 20px }
+.diagram .t-lane { font-weight: 600; font-size: 12px; letter-spacing: .1em; fill: var(--red) }
+.diagram .t-edge { font-size: 12px; fill: var(--mute) }
+.diagram .box { fill: var(--ink); stroke: var(--line); stroke-width: 1.5 }
+.diagram .box.hot { stroke: var(--gold) }
+.route { position: relative; display: grid; gap: 40px; margin-top: 10px; padding-left: 46px }
+.route::before { content: ""; position: absolute; left: 13px; top: 8px; bottom: 8px; width: 4px;
+  background: repeating-linear-gradient(180deg, var(--gold) 0 7px, transparent 7px 22px); animation: rail 1.1s linear infinite }
+@keyframes rail { to { background-position-y: 22px } }
+.stage { position: relative; display: grid; gap: 12px; min-width: 0 }
+.stage::before { content: ""; position: absolute; left: -44px; top: 3px; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--ink); border: 4px solid var(--gold) }
+.stage.goal::before { background: var(--gold) }
+.stage header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px }
+.stage h3 { font-size: 34px; font-weight: 800; color: var(--fg) }
+.stage .cpu { font: 600 12.5px/1.3 var(--mono); letter-spacing: .08em; color: #a9e4c4 }
+.proved { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 22px; font: 400 14px/1.45 var(--mono); color: var(--fg) }
+.proved li::before { content: "✓ "; color: #a9e4c4; font-weight: 600 }
+.blockers { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px }
+.blocker { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 3px 12px; background: var(--ink2); border: 1px solid var(--line); padding: 12px; font-size: 15px; line-height: 1.45 }
+.blocker svg { grid-row: span 2; width: 38px; height: 38px; color: var(--gold); fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
+.blocker b { font-weight: 600; color: var(--fg) }
+.blocker span { color: var(--mute) }
+.diagram .box.data { stroke: var(--sea) }
+.diagram .edge { fill: none; stroke: currentColor; stroke-width: 1.6 }
+.diagram .flow { fill: none; stroke: var(--gold); stroke-width: 2.4; stroke-dasharray: 3 19; stroke-linecap: round; animation: flow 1.1s linear infinite }
+.diagram .flow.data { stroke: #6fd3c8 }
+@keyframes flow { to { stroke-dashoffset: -22 } }
+
+.demo { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 22px; align-items: center; margin-top: 4px }
+.demo canvas { width: 100%; aspect-ratio: 16 / 7; image-rendering: pixelated; background: var(--ink2); border: 1px solid var(--line); display: block }
+.demo .side { display: grid; gap: 10px; min-width: 0 }
+.demo label { font: 600 14px/1.4 var(--mono); color: var(--fg) }
+.demo input { width: 100%; accent-color: var(--gold) }
+.demo output { font: 600 30px/1.1 var(--mono); color: #a9e4c4; font-variant-numeric: tabular-nums }
+.demo .note { font-size: 15px; color: var(--mute) }
+
+@media (prefers-reduced-motion: reduce) { .diagram .flow, .route::before { animation: none } }
+@media (max-width: 720px) {
+  #radar { width: 76px; height: 76px; top: 12px }
+  .demo { grid-template-columns: minmax(0, 1fr) }
+  .hud { grid-template-columns: repeat(2, 1fr) }
+  .firsts, .case { grid-template-columns: minmax(0, 1fr) }
+  .run { grid-template-columns: minmax(0, 1fr) }
+  .steps li { grid-template-columns: 44px minmax(0, 1fr) }
+  .steps li::before { font-size: 40px }
+  section { padding-block: 44px 4px }
+}
+</style>
+
+<header class="hero">
+  <canvas id="sky" width="360" height="200" aria-hidden="true"></canvas>
+  <div class="scan"></div>
+  <canvas id="radar" width="52" height="52" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <span class="label" style="color:var(--gold)">Static recompilation · 1995 → 2026</span>
+    <h1>FURY<sup>3</sup> <b>/</b> VITA</h1>
+    <p>A 1995 Windows flight shooter, translated function by function from its original program into C, now running natively on a PlayStation Vita. No emulator. The player brings their own CD.</p>
+    <dl class="hud">
+      <div><dt>FUNCS</dt><dd>1,999</dd></div>
+      <div><dt>C LINES</dt><dd>233,199</dd></div>
+      <div><dt>GAME FILES</dt><dd>YOURS</dd></div>
+      <div><dt>PLANETS</dt><dd>8 / 8</dd></div>
+    </dl>
+    <span class="firing">MOVE TO STEER · CLICK TO FIRE · HITS <b id="hits">0</b></span>
+  </div>
+</header>
+
+<main>
+<section><div class="wrap">
+  <h2>What was built</h2>
+  <p><em>Microsoft Fury³</em> shipped in 1995, developed by Terminal Reality: eight planets, a 24-mission campaign, a software renderer, tracker music and full-motion video. This project takes the original 645 KB <code>FURY3.EXE</code>, translates every function to C, and links that code to a new runtime that stands in for Windows. The same translated code now builds for Windows, Linux and the PS Vita.</p>
+  <p>Going by file timestamps, it took about 24 hours from the disc image reaching the PC to a Vita build with controls, sound, music, saving and first-launch setup. That speed rests on the existing <a href="https://github.com/sp00nznet">sp00nznet pcrecomp</a> toolchain, which supplied the disassembler, the translator and an early runtime.</p>
+</div></section>
+
+<section><div class="wrap">
+  <span class="label">The pipeline</span>
+  <h2>From a 1995 program to a Vita game</h2>
+  <figure>
+    <div class="diagram">
+      <svg viewBox="0 0 980 470" role="img" aria-label="Two paths meet in the finished game. The build path translates FURY3.EXE into C, adds the new runtime, and compiles a native program. The player's path takes files from their own CD, checks them, and the game reads them at play time, with optional mods listed first.">
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker>
+        </defs>
+        <text class="t-lane" x="20" y="24">WHAT WE BUILD: TRANSLATED CODE AND A NEW RUNTIME</text>
+        <text class="t-lane" x="20" y="282">WHAT THE PLAYER BRINGS: THE GAME'S FILES</text>
+        <line x1="20" y1="258" x2="960" y2="258" stroke="currentColor" stroke-opacity=".3" stroke-dasharray="6 6"/>
+
+        <rect class="box" x="20" y="44" width="160" height="82"/>
+        <text class="t-big" x="100" y="78" text-anchor="middle">FURY3.EXE</text><text x="100" y="102" text-anchor="middle">645 KB of x86</text>
+        <rect class="box" x="215" y="44" width="160" height="82"/>
+        <text class="t-big" x="295" y="78" text-anchor="middle">Disassembler</text><text x="295" y="102" text-anchor="middle">finds 1,999 functions</text>
+        <rect class="box" x="410" y="44" width="160" height="82"/>
+        <text class="t-big" x="490" y="78" text-anchor="middle">Translator</text><text x="490" y="102" text-anchor="middle">x86 to C</text>
+        <rect class="box" x="605" y="44" width="160" height="82"/>
+        <text class="t-big" x="685" y="78" text-anchor="middle">Generated C</text><text x="685" y="102" text-anchor="middle">233,199 lines</text>
+        <rect class="box" x="800" y="44" width="160" height="82"/>
+        <text class="t-big" x="880" y="78" text-anchor="middle">Compiler</text><text x="880" y="102" text-anchor="middle">GCC for ARM</text>
+
+        <rect class="box hot" x="605" y="164" width="160" height="72"/>
+        <text class="t-big" x="685" y="195" text-anchor="middle">New runtime</text><text x="685" y="218" text-anchor="middle">stands in for Windows</text>
+
+        <rect class="box hot" x="800" y="324" width="160" height="82"/>
+        <text class="t-big" x="880" y="358" text-anchor="middle">Fury³ on Vita</text><text x="880" y="382" text-anchor="middle">native ARM code</text>
+
+        <rect class="box data" x="20" y="324" width="160" height="82"/>
+        <text class="t-big" x="100" y="358" text-anchor="middle">Your Fury³ CD</text><text x="100" y="382" text-anchor="middle">.iso, .bin or folder</text>
+        <rect class="box data" x="215" y="324" width="160" height="82"/>
+        <text class="t-big" x="295" y="358" text-anchor="middle">First launch</text><text x="295" y="382" text-anchor="middle">extract, check SHA-1</text>
+        <rect class="box data" x="410" y="324" width="160" height="82"/>
+        <text class="t-big" x="490" y="358" text-anchor="middle">Game folder</text><text x="490" y="382" text-anchor="middle">archives, videos</text>
+        <rect class="box data" x="605" y="398" width="160" height="58"/>
+        <text x="685" y="422" text-anchor="middle">pod.ini + mod archive</text><text x="685" y="442" text-anchor="middle">optional, goes first</text>
+
+        <path class="edge" d="M180 85 H213" marker-end="url(#arr)"/><path class="flow" d="M180 85 H213"/>
+        <path class="edge" d="M375 85 H408" marker-end="url(#arr)"/><path class="flow" d="M375 85 H408"/>
+        <path class="edge" d="M570 85 H603" marker-end="url(#arr)"/><path class="flow" d="M570 85 H603"/>
+        <path class="edge" d="M765 85 H798" marker-end="url(#arr)"/><path class="flow" d="M765 85 H798"/>
+        <path class="edge" d="M765 200 H840 V128" marker-end="url(#arr)"/><path class="flow" d="M765 200 H840 V128"/>
+        <text class="t-edge" x="770" y="190">linked in</text>
+        <path class="edge" d="M920 126 V322" marker-end="url(#arr)"/><path class="flow" d="M920 126 V322"/>
+        <text class="t-edge" x="852" y="294">eboot.bin</text>
+        <path class="edge" d="M180 365 H213" marker-end="url(#arr)"/><path class="flow data" d="M180 365 H213"/>
+        <path class="edge" d="M375 365 H408" marker-end="url(#arr)"/><path class="flow data" d="M375 365 H408"/>
+        <path class="edge" d="M570 365 H798" marker-end="url(#arr)"/><path class="flow data" d="M570 365 H798"/>
+        <text class="t-edge" x="684" y="355" text-anchor="middle">read at play time</text>
+        <path class="edge" d="M765 427 H880 V408" marker-end="url(#arr)"/><path class="flow data" d="M765 427 H880 V408"/>
+      </svg>
+    </div>
+    <figcaption>Two paths meet at the finished game. The top one builds the program: code translated from the original, plus a new runtime. The bottom one stays with the player: their own files, checked on first launch and read as the game plays.</figcaption>
+  </figure>
+</div></section>
+
+<section><div class="wrap">
+  <span class="label">Breakthroughs</span>
+  <h2>What stands out</h2>
+  <p>Other x86-to-Vita recompilations exist, including Project I.G.I. and Hollywood Monsters, so the method itself is not new. These are the parts that are unusual, or that we could not find done anywhere else.</p>
+  <div class="firsts">
+    <article><h3>Fury³ in your hands</h3><p>We found no earlier handheld port of this game. It runs as native ARM code at about 80 fps in quiet flight on a 444 MHz handheld from 2011.</p></article>
+    <article><h3>Hand rewrites with proof</h3><p>The two hottest assembly routines were rewritten in C. A verifier ran old and new versions on identical copies of the whole 69 MB guest memory and compared every byte, register and flag: 1,600 sampled calls, 0 differences.</p></article>
+    <article><h3>Setup on the console itself</h3><p>Drop a disc image on the memory card and the game reads the CD filesystem on first launch, including raw <code>.bin</code> sectors, extracts its files and checks them. No PC tools are needed.</p></article>
+    <article><h3>Runs from five original files</h3><p>The port reads the game's own archives through the game's own code, exactly as in 1995. Nothing is repacked, converted or shipped. Every file is identified by size, and the program by SHA-1.</p></article>
+    <article><h3>Agent on real hardware</h3><p>Claude Code built each version, copied it to the Vita over USB, then read the logs back off the memory card after each play session. A person played; an agent diagnosed.</p></article>
+    <article><h3>Behaviour read from the binary</h3><p>Weapons, cameras, cockpit modes, pause and saving were all recovered from machine code and its keyboard tables, with no source code or manual to work from.</p></article>
+    <article><h3>1995 video, in plain C</h3><p>All 19 cutscenes use Cinepak. A decoder written for this port plays the player's original files with their sound, with no conversion step.</p></article>
+    <article><h3>A GPU for a software renderer</h3><p>The game only ever drew into a 320×200 frame in memory. The runtime now catches its polygons at the game's own drawing routines and sends them to the GPU, with a shader doing the work of its shade tables and palette.</p></article>
+    <article><h3>Mods through the game's own door</h3><p>The game turned out to have a built-in archive override, <code>pod.ini</code>. A converter now turns a 3D model into a working replacement, with baked textures, moving wings, walking legs, engine glow and a cheap far-away version. A title-screen button turns mods on and off.</p></article>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <span class="label">Measured on a PS Vita 1000</span>
+  <h2>From slideshow to playable</h2>
+  <p>Each round was played on the device and reported from an on-screen frame counter. The first build dropped to 3–4 fps in explosions. The worst loading stall went from 30 seconds at 1 fps to a few seconds. The last round moved rendering from the CPU to the Vita's GPU.</p>
+  <div class="bars" role="img" aria-label="Frames per second by development round. First run: 20 quiet, 3.5 busy. File and clock fixes: 30 quiet, 7 busy. Runtime fixes: about 50 quiet, 14 busy. Native texture mappers: about 50 quiet, 20 busy. GPU renderer: 80 quiet, 20 to 30 busy.">
+    <div class="run"><div class="name">First run</div><div class="tracks">
+      <div class="t"><div class="track"><div class="fill" style="width:25%"></div></div><div class="val">20</div></div>
+      <div class="t"><div class="track"><div class="fill busy" style="width:4.4%"></div></div><div class="val">3–4</div></div></div></div>
+    <div class="run"><div class="name">File + clock fixes</div><div class="tracks">
+      <div class="t"><div class="track"><div class="fill" style="width:37.5%"></div></div><div class="val">30</div></div>
+      <div class="t"><div class="track"><div class="fill busy" style="width:8.8%"></div></div><div class="val">7</div></div></div></div>
+    <div class="run"><div class="name">Runtime fixes</div><div class="tracks">
+      <div class="t"><div class="track"><div class="fill" style="width:62.5%"></div></div><div class="val">40–60</div></div>
+      <div class="t"><div class="track"><div class="fill busy" style="width:17.5%"></div></div><div class="val">14</div></div></div></div>
+    <div class="run"><div class="name">Native mappers</div><div class="tracks">
+      <div class="t"><div class="track"><div class="fill" style="width:62.5%"></div></div><div class="val">40–60</div></div>
+      <div class="t"><div class="track"><div class="fill busy" style="width:25%"></div></div><div class="val">~20</div></div></div></div>
+    <div class="run"><div class="name">GPU renderer</div><div class="tracks">
+      <div class="t"><div class="track"><div class="fill" style="width:100%"></div></div><div class="val">80</div></div>
+      <div class="t"><div class="track"><div class="fill busy" style="width:31.3%"></div></div><div class="val">20–30</div></div></div></div>
+  </div>
+  <p class="scale"><span class="key" style="background:var(--sea)"></span>quiet flight &nbsp; <span class="key" style="background:var(--red)"></span>heaviest fights &nbsp; Bars run from 0 to 80 fps; ranges are drawn at their midpoint. Quiet flight was not re-measured for the native mappers. With a heavy mod set and low-detail models, a 54-second GPU run had a median of 54 fps, the slowest tenth at 36 or below, and nothing under 20.</p>
+</div></section>
+
+<section><div class="wrap">
+  <span class="label">Inside the renderer</span>
+  <h2>The 16-pixel trick</h2>
+  <p>In 1995, a perspective-correct divide for every pixel was too slow. Fury³'s texture mapper divides at the ends of each 16-pixel run and interpolates in between, and its speed depends on that choice. The native C rewrite keeps exactly the same behaviour. Move the slider to see what the spacing does to a receding wall.</p>
+  <div class="demo">
+    <canvas id="spans" width="320" height="140" role="img" aria-label="A textured wall receding to the right, drawn with the selected spacing between perspective divides."></canvas>
+    <div class="side">
+      <label for="spacing">Pixels between divides</label>
+      <input id="spacing" type="range" min="0" max="4" step="1" value="2">
+      <output id="spacingOut" for="spacing">16 px</output>
+      <p class="note" id="spacingNote">The game's setting. 20 divides per row on this 320-pixel wall.</p>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <span class="label">Case files</span>
+  <h2>The bugs that mattered</h2>
+  <div class="cases">
+    <div class="case"><h3>“Hose enemy crlf”</h3>
+      <div><span class="label">Symptom</span>The game quit while reading its enemy list, with its developers' own odd error message.</div>
+      <div><span class="label">Cause</span>Part of the C library falls through into the next function. The translator wrote a <code>return</code> there, so a saved register came back wrong.</div>
+      <div><span class="label">Fix</span>One translator change corrected 61 sites at once.</div></div>
+    <div class="case"><h3>85% of every frame</h3>
+      <div><span class="label">Symptom</span>About 14 fps on a laptop, with no obvious heavy work.</div>
+      <div><span class="label">Cause</span>A native profiler showed debug-switch lookups through <code>getenv</code> sitting in the hottest paths.</div>
+      <div><span class="label">Fix</span>A cached lookup. Flight fell to 1.6–3.5 ms of CPU per frame.</div></div>
+    <div class="case"><h3>1 fps at the loading bar</h3>
+      <div><span class="label">Symptom</span>Loading fell to 1 fps for 30 seconds on the Vita.</div>
+      <div><span class="label">Cause</span>Each memory-card call is slow, and a mission opens its archive 628 times with about 25,000 small seeks and reads.</div>
+      <div><span class="label">Fix</span>A startup file index, a path cache, pooled handles and a 64 KB read window: 628 opens became 21.</div></div>
+    <div class="case"><h3>“Model read hose”</h3>
+      <div><span class="label">Symptom</span>Run from clean CD files, the game crashed while loading models.</div>
+      <div><span class="label">Cause</span>An early shortcut had replaced the game's archive lookup, and unpacked files had hidden the damage ever since.</div>
+      <div><span class="label">Fix</span>The shortcut was deleted, and the game's own code now runs.</div></div>
+    <div class="case"><h3>Saving never worked</h3>
+      <div><span class="label">Symptom</span>No save file ever appeared, in any build.</div>
+      <div><span class="label">Cause</span>The game opens a Windows “Save As” dialog, and that was an empty placeholder that always cancelled.</div>
+      <div><span class="label">Fix</span>One save slot, chosen without a dialog. Square saves while paused.</div></div>
+    <div class="case"><h3>The flashing title</h3>
+      <div><span class="label">Symptom</span>The title screen blinked on and off once a second.</div>
+      <div><span class="label">Cause</span>The game redraws its title once a second. An old 500 ms fallback kept swapping in a stale buffer between redraws.</div>
+      <div><span class="label">Fix</span>The fallback now stops for good once the game has drawn its first frame.</div></div>
+    <div class="case"><h3>The boss that couldn't be hurt</h3>
+      <div><span class="label">Symptom</span>With its four shields destroyed, the first boss still took no damage from any weapon.</div>
+      <div><span class="label">Cause</span>Translated <code>sscanf</code> lost the comma after the first number, so every hit spot on the boss loaded with a size of zero.</div>
+      <div><span class="label">Fix</span><code>sscanf</code> now shares the runtime's own reader. A log from the device pointed to it, and the boss then fell on the Vita.</div></div>
+    <div class="case"><h3>Retry Mission (Y/N)</h3>
+      <div><span class="label">Symptom</span>After losing the last life, the prompt ignored every button, then dropped to the title.</div>
+      <div><span class="label">Cause</span>It waits for a typed character from Windows, which a handheld has no way to send.</div>
+      <div><span class="label">Fix</span>Cross or Start retries and Circle quits, and the prompt now says so.</div></div>
+    <div class="case"><h3>Behind a distant building</h3>
+      <div><span class="label">Symptom</span>On the GPU, shooting a far-off building put the player's ship behind it.</div>
+      <div><span class="label">Cause</span>The game's depth only sorts a model against itself and clears before each one. One shared GPU depth buffer broke that rule.</div>
+      <div><span class="label">Fix</span>Each model now gets its own slice of GPU depth, while the ground stays outside it.</div></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <span class="label">The route</span>
+  <h2>From one 1995 program to three platforms</h2>
+  <p>Each stop had to work before the next began. Windows proved the translation was correct, Linux proved it was portable, and the Vita proved it could run on small hardware. The icons mark the blockers that stood in the way.</p>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <symbol id="i-bug" viewBox="0 0 24 24"><ellipse cx="12" cy="14" rx="5" ry="6.5"/><path d="M9 7.5a3 3 0 0 1 6 0M12 8v12M7 12H3M21 12h-4M7 17l-3 2M17 17l3 2M7.5 9 5 6.5M16.5 9 19 6.5"/></symbol>
+    <symbol id="i-break" viewBox="0 0 24 24"><path d="M9 7H7a5 5 0 0 0 0 10h2M15 7h2a5 5 0 0 1 0 10h-2M12 4v3M12 17v3M9 12h1M14 12h1"/></symbol>
+    <symbol id="i-screen" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="1"/><path d="M8 21h8M12 17v4M7 13l3-4 3 3 2-2 3 3"/></symbol>
+    <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4 18a9 9 0 1 1 16 0"/><path d="M12 15l5-6"/><circle cx="12" cy="15" r="1.5"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L13 19V5L7.5 9.5H4zM16.5 9a4 4 0 0 1 0 6M19 6.5a8 8 0 0 1 0 11"/></symbol>
+    <symbol id="i-case" viewBox="0 0 24 24"><path d="M3 18 8 6l5 12M5 14h6M20 18v-7M20 14.500a3.500 3.500 0 1 1-7 0 3.500 3.500 0 0 1 7 0z"/></symbol>
+    <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12"/><rect x="10" y="10" width="4" height="4"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="M3 8l9-5 9 5v8l-9 5-9-5V8zM3 8l9 5 9-5M12 13v8"/></symbol>
+    <symbol id="i-card" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6zM9 3v4M12 3v4M15 3v4M9 12h7M9 16h5"/></symbol>
+    <symbol id="i-proof" viewBox="0 0 24 24"><rect x="3" y="5" width="8" height="14"/><rect x="13" y="5" width="8" height="14"/><path d="M5 9h4M5 12h4M15 9h4M15 12h4M9 16l1.500 1.500M15 16l1.500 1.500 2.500-3"/></symbol>
+    <symbol id="i-archive" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="5"/><path d="M5 9v11h14V9M10 13h4"/></symbol>
+    <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14"/><path d="M8 5v14M16 5v14M3 9.500h5M3 14.500h5M16 9.500h5M16 14.500h5M11 10l3 2-3 2z"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M4 4h13l3 3v13H4zM8 4v6h8V4M8 20v-6h8v6"/></symbol>
+  </defs></svg>
+
+  <div class="route">
+    <div class="stage">
+      <header><h3>The original</h3><span class="cpu">1995 · WINDOWS 95 · 32-BIT x86</span></header>
+      <ul class="proved"><li>645 KB program, no source code</li><li>1,999 functions found</li><li>233,199 lines of C generated</li></ul>
+    </div>
+
+    <div class="stage">
+      <header><h3>Windows</h3><span class="cpu">PROVE THE TRANSLATION · x86</span></header>
+      <ul class="proved"><li>Title screen</li><li>Mission 1 plays</li><li>All 8 planets fly</li><li>Sound and music</li></ul>
+      <div class="blockers">
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-bug"/></svg><b>Frame pointer wiped</b><span>One generated line reset a CPU register in every function. Removed it, and a whole family of crashes went with it.</span></div>
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-break"/></svg><b>“Hose enemy crlf”</b><span>Code that ran on into the next function got a stray return. One translator fix corrected 61 sites.</span></div>
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-screen"/></svg><b>Title art during flight</b><span>The runtime guessed which image to show. It now follows the game's real off-screen drawing.</span></div>
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-gauge"/></svg><b>85% of time lost</b><span>Debug-setting lookups sat in the hottest code. Caching them took flight to 1.6–3.5 ms a frame.</span></div>
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-sound"/></svg><b>Silence</b><span>The game's audio thread never ran. The runtime now runs it on a schedule, and the music came back too.</span></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <header><h3>Linux</h3><span class="cpu">PROVE IT IS PORTABLE · GCC</span></header>
+      <ul class="proved"><li>All OS calls behind one small interface</li><li>Frames match Windows</li><li>Sound and music</li></ul>
+      <div class="blockers">
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-case"/></svg><b>Case-sensitive files</b><span>A 1995 game never cared about capital letters. The runtime now finds each file the way Windows would.</span></div>
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-chip"/></svg><b>A different compiler</b><span>GCC assumes stricter rules than old x86 code follows, so the translated code builds with those assumptions turned off.</span></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <header><h3>PS Vita</h3><span class="cpu">PROVE IT ON SMALL HARDWARE · ARM · 444 MHz</span></header>
+      <ul class="proved"><li>Boots and flies with controls</li><li>About 80 fps in quiet flight</li><li>20–30 fps in big fights</li></ul>
+      <div class="blockers">
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-chip"/></svg><b>Unaligned memory</b><span>x86 forgives data at odd addresses and ARM can fault on it. All guest memory access is now safe at any address.</span></div>
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-box"/></svg><b>Package would not build</b><span>The Vita's packaging tool ran out of space between code and data. A small linker script made room.</span></div>
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-card"/></svg><b>30 seconds at 1 fps</b><span>Memory-card calls are slow and the game makes thousands. A file index and read window cut opens from 628 to 21.</span></div>
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-proof"/></svg><b>Hand-written renderer</b><span>Two assembly routines were rewritten in C, then proven identical on 1,600 sampled calls before going on the Vita.</span></div>
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-screen"/></svg><b>Shaders that crashed</b><span>The GPU path needs the system's shader compiler, which would only run with its memory on the C heap and a 96 MB heap. Without the compiler, the game falls back to software.</span></div>
+      </div>
+    </div>
+
+    <div class="stage goal">
+      <header><h3>Ready for players</h3><span class="cpu">RUNS FROM THE PLAYER'S OWN CD</span></header>
+      <ul class="proved"><li>Setup from a disc image</li><li>Saving and pause</li><li>Cutscenes</li><li>Planet select</li><li>Mod support</li></ul>
+      <div class="blockers">
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-archive"/></svg><b>“Model read hose”</b><span>An early shortcut had hidden the game's archive lookup. Removing it lets the game read its CD files directly.</span></div>
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-film"/></svg><b>New Game froze</b><span>The game waited forever for a movie to finish. A new Cinepak player now plays it and reports back.</span></div>
+        <div class="blocker"><svg aria-hidden="true"><use href="#i-save"/></svg><b>Saving never worked</b><span>It relied on a Windows “Save As” dialog. One automatic save slot replaced it, on the Square button.</span></div>
+      </div>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <span class="label">Workflow</span>
+  <h2>How this was done with Claude Code</h2>
+  <p>One person with a Vita directed the project, and Claude Code did the engineering in their terminal, with access to the code, the build tools and the memory card. The work ran as a repeating loop.</p>
+  <ol class="steps">
+    <li><h3>Set the goal and the standard</h3><p>The opening instruction fixed the rule for everything that followed: “Keep debugging forward with real root-cause fixes (not workarounds).” It also told Claude not to stop and ask whether to continue.</p></li>
+    <li><h3>Read the machine code</h3><p>With no source code, Claude read the disassembly directly: jump tables, key tables and memory addresses, then traced each symptom back to a cause.</p></li>
+    <li><h3>Build a tool for each question</h3><p>Frame snapshots, a per-function profiler, scripted key presses, file-open logs and the byte-exact verifier were each written when a question needed them. Most bugs were found and confirmed without a person testing them.</p></li>
+    <li><h3>Build, deploy, measure</h3><p>Claude rebuilt for Windows, Linux or Vita, verified the result, and copied it to the memory card with a hash check. Anything that could only be judged by hand went to the person with the Vita.</p></li>
+    <li><h3>Play it and report back</h3><p>The person played and described what they saw. Claude paired that report with the device logs:</p>
+      <blockquote>“it got to terran loading screen - halfway in the loading bar - and then dropped to 1fps for several seconds”<cite>Play-test report that led to the file index and path cache</cite></blockquote></li>
+    <li><h3>Write it all down</h3><p>Every root cause went into a running handoff log, which is what let the work continue across long sessions. The process itself is now saved as a reusable skill for the next port.</p></li>
+  </ol>
+</div></section>
+
+<section><div class="wrap">
+  <span class="label">Beyond this engine</span>
+  <h2>What carries to the next game</h2>
+  <p>The method is not tied to Fury³'s engine. It works on x86 machine code, so it applies to any 32-bit Windows game, whatever engine it uses. Most of the 7,200 or so runtime lines know nothing about Fury³, though the GPU renderer and planet select rely on its addresses, so that share has grown. A game on the same engine, such as <em>Hellbender</em> (1996), would reuse more, but even that needs its own addresses and testing.</p>
+  <div class="scroll"><table class="reuse">
+    <thead><tr><th>Layer</th><th>Reuse</th><th>What it covers</th></tr></thead>
+    <tbody>
+      <tr><td>Translation pipeline</td><td><span class="tag all">Any x86 game</span></td><td>Disassembler, translator and every translator bug fixed here. The 233,199 lines of C are regenerated per game.</td></tr>
+      <tr><td>Windows stand-ins</td><td><span class="tag all">Same APIs</span></td><td>Files, messages, audio, GDI, dialogs, threads. A game using Direct3D or Glide needs new graphics work.</td></tr>
+      <tr><td>Platform layer</td><td><span class="tag all">Any game</span></td><td>Vita, Linux and Windows services, packaging, disc-image setup and file-speed work.</td></tr>
+      <tr><td>Test tools and process</td><td><span class="tag all">Any game</span></td><td>Profilers, key scripts, snapshots, verifier pattern, handoff log and skill.</td></tr>
+      <tr><td>Texture mappers</td><td><span class="tag some">Same engine</span></td><td>The approach carries anywhere. The code suits only games sharing these routines.</td></tr>
+      <tr><td>Controls, saves, text</td><td><span class="tag game">Fury³ only</span></td><td>Key meanings, memory addresses and on-screen strings. The method for finding them carries over; the values do not.</td></tr>
+    </tbody>
+  </table></div>
+</div></section>
+
+<section><div class="wrap">
+  <span class="label">Still to do</span>
+  <h2>Before release</h2>
+  <ul class="left">
+    <li>A full campaign play-through on the Vita, including death, game over and mission changes.</li>
+    <li>A clean install test of the package.</li>
+    <li>Publishing the source, then settling how the Vita program can be distributed, since it contains translated code.</li>
+  </ul>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <p><em>Fury³</em> © 1995 Microsoft Corporation and Terminal Reality, Inc. This is an unofficial fan project, not affiliated with either company. The program is translated from the original executable. Apart from the title art on its LiveArea screens, it contains no art, sound, music or video from the game. Players need their own copy of the game.</p>
+  <p>Built on the sp00nznet pcrecomp toolchain, VitaSDK, vitaGL and SDL2, with Claude Code. The header terrain is original and drawn live in your browser.</p>
+</div></footer>
+
+<script>
+(function () {
+  var still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var hero = document.querySelector('.hero');
+  var c = document.getElementById('sky'), g = c.getContext('2d');
+  var W = c.width, H = c.height, HZ = 92, img = g.createImageData(W, H), px = img.data;
+  // A 256x256 tile, addressed like the game's textures: (v & 255) << 8 | (u & 255).
+  var tex = new Uint8Array(65536);
+  for (var v = 0; v < 256; v++) for (var u = 0; u < 256; u++) {
+    var a = u * Math.PI / 128, b = v * Math.PI / 128;
+    var n = Math.sin(a * 2 + Math.sin(b * 3)) + Math.sin(b * 2 - Math.sin(a * 3) * 1.4) + .5 * Math.sin((a + b) * 7) + .25 * Math.sin((a * 11 - b * 9));
+    tex[v << 8 | u] = n > 1.05 ? (n > 1.4 ? 3 : 2) : ((u ^ v) & 5 ? 0 : 1);
+  }
+  var ramp = [[17, 92, 96], [23, 112, 112], [150, 118, 88], [86, 112, 72]], haze = [176, 176, 196];
+
+  var aim = null, roll = 0, lift = 0, hits = 0, bolts = [], booms = [];
+  var foe = { a: 40, b: -6, z: 7 };
+  function view() {            // the canvas is cropped to fill the header
+    var r = c.getBoundingClientRect(), s = Math.max(r.width / W, r.height / H) || 1;
+    return { r: r, s: s, ox: (r.width - W * s) / 2, oy: (r.height - H * s) / 2 };
+  }
+  function toCanvas(e) {
+    var q = view();
+    return { x: (e.clientX - q.r.left - q.ox) / q.s, y: (e.clientY - q.r.top - q.oy) / q.s };
+  }
+  function shipX() {
+    var q = view(), vis = q.r.width / q.s;
+    return W / 2 + Math.min(92, vis * .24);
+  }
+  function foeXY() {
+    var k = 42 / foe.z, cr = Math.cos(roll), sr = Math.sin(roll), x = foe.a * k, y = foe.b * k;
+    return { x: W / 2 + x * cr - y * sr, y: HZ + lift + x * sr + y * cr, s: Math.max(2, 13 / foe.z * 2) };
+  }
+  function drawShip(x, y) {
+    g.save(); g.translate(x, y); g.rotate(roll * .9);
+    g.fillStyle = '#7f909a'; g.beginPath(); g.moveTo(-34, 6); g.lineTo(-8, -1); g.lineTo(8, -1); g.lineTo(34, 6); g.lineTo(8, 5); g.lineTo(-8, 5); g.fill();
+    g.fillStyle = '#b4c2c9'; g.beginPath(); g.moveTo(0, -11); g.lineTo(7, 5); g.lineTo(-7, 5); g.fill();
+    g.fillStyle = '#3d4c55'; g.fillRect(-15, -2, 6, 8); g.fillRect(9, -2, 6, 8);
+    g.fillStyle = '#ffb04a'; g.fillRect(-14, 5, 4, 2); g.fillRect(10, 5, 4, 2);
+    g.fillStyle = '#e8323a'; g.beginPath(); g.moveTo(0, -11); g.lineTo(2, -5); g.lineTo(-2, -5); g.fill();
+    g.fillStyle = '#9aa9b1'; g.fillRect(-35, 2, 1, 6); g.fillRect(34, 2, 1, 6);
+    g.restore();
+  }
+  function frame(ms) {
+    var want = aim ? (aim.x - W / 2) / W * 1.15 : Math.sin(ms / 2600) * .22;
+    var wantL = aim ? (aim.y - H / 2) * -.14 : Math.sin(ms / 3700) * 3;
+    roll += (want - roll) * .12; lift += (wantL - lift) * .12;
+    var cam = ms * .018, cr = Math.cos(roll), sr = Math.sin(roll), i = 0, hz = HZ + lift;
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++, i += 4) {
+      var dx = x - W / 2, dy = y - hz, X = dx * cr + dy * sr, Y = dy * cr - dx * sr, r, gg, bb;
+      if (Y <= 0) {
+        var t = Math.min(1, (HZ + Y) / HZ), d = ((x * 7 + y * 13) & 3) / 40;
+        r = 58 + 118 * t + 30 * d; gg = 62 + 114 * t + 30 * d; bb = 128 + 68 * t + 30 * d;
+      } else {
+        var z = 2600 / (Y + .5);                     // the perspective divide
+        var u = (X * z / 90) & 255, vv = (z + cam * 8) & 255;
+        var p = ramp[tex[vv << 8 | u]], f = Math.min(1, z / 520);  // depth shading toward the haze
+        r = p[0] + (haze[0] - p[0]) * f; gg = p[1] + (haze[1] - p[1]) * f; bb = p[2] + (haze[2] - p[2]) * f;
+      }
+      px[i] = r; px[i + 1] = gg; px[i + 2] = bb; px[i + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+
+    var e = foeXY();
+    if (!still) { foe.z -= .045; if (foe.z < .9) { foe.z = 7; foe.a = (Math.random() - .5) * 110; foe.b = -4 - Math.random() * 20; } }
+    g.fillStyle = '#1a2230'; g.fillRect(e.x - e.s, e.y - 1, e.s * 2, 2); g.fillRect(e.x - 1, e.y - e.s / 2, 2, e.s);
+    g.fillStyle = '#e8323a'; g.fillRect(e.x - 1, e.y - 1, 2, 2);
+
+    var sx = shipX(), sy = 122 + lift * .3;
+    for (var b = bolts.length - 1; b >= 0; b--) {
+      var o = bolts[b]; o.t += .16;
+      var ax = o.fx + (o.tx - o.fx) * o.t, ay = o.fy + (o.ty - o.fy) * o.t, t2 = Math.max(0, o.t - .18);
+      g.strokeStyle = '#ffe28a'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(o.fx + (o.tx - o.fx) * t2, o.fy + (o.ty - o.fy) * t2); g.lineTo(ax, ay); g.stroke();
+      if (o.t >= 1) {
+        var now = foeXY();
+        if (Math.hypot(now.x - o.tx, now.y - o.ty) < now.s + 10) {
+          booms.push({ x: now.x, y: now.y, r: 2 }); hits++; document.getElementById('hits').textContent = hits;
+          foe.z = 7; foe.a = (Math.random() - .5) * 110;
+        }
+        bolts.splice(b, 1);
+      }
+    }
+    for (var k = booms.length - 1; k >= 0; k--) {
+      var m = booms[k]; m.r += 2.2;
+      g.fillStyle = m.r < 9 ? '#fff3b0' : m.r < 15 ? '#ffb04a' : '#e8323a';
+      for (var q = 0; q < 10; q++) { var ang = q * .628 + m.r * .1; g.fillRect(m.x + Math.cos(ang) * m.r, m.y + Math.sin(ang) * m.r, 2, 2); }
+      if (m.r > 22) booms.splice(k, 1);
+    }
+    drawShip(sx, sy);
+    if (aim) { g.fillStyle = '#a9e4c4'; g.fillRect(aim.x - 5, aim.y, 3, 1); g.fillRect(aim.x + 3, aim.y, 3, 1); g.fillRect(aim.x, aim.y - 5, 1, 3); g.fillRect(aim.x, aim.y + 3, 1, 3); }
+    radar(ms);
+  }
+
+  var rc = document.getElementById('radar'), rg = rc.getContext('2d');
+  function radar(ms) {
+    var R = 26, sweep = ms / 900;
+    rg.clearRect(0, 0, 52, 52);
+    rg.fillStyle = '#0a2a2c'; rg.strokeStyle = '#b08a4a'; rg.lineWidth = 2;
+    rg.beginPath(); rg.arc(R, R, R - 1, 0, 6.3); rg.fill(); rg.stroke();
+    rg.strokeStyle = 'rgba(169,228,196,.25)'; rg.lineWidth = 1;
+    rg.beginPath(); rg.arc(R, R, 13, 0, 6.3); rg.moveTo(R, 3); rg.lineTo(R, 49); rg.moveTo(3, R); rg.lineTo(49, R); rg.stroke();
+    rg.fillStyle = 'rgba(169,228,196,.22)'; rg.beginPath(); rg.moveTo(R, R); rg.arc(R, R, 24, sweep, sweep + .7); rg.fill();
+    var bx = R + foe.a / 60 * 18, by = R - foe.z * 3;
+    rg.fillStyle = '#e8323a'; rg.fillRect(bx - 1, by - 1, 3, 3);
+    rg.fillStyle = '#ffcd46'; rg.fillRect(R - 1, R - 1, 3, 3);
+  }
+
+  hero.addEventListener('pointermove', function (e) { aim = toCanvas(e); });
+  hero.addEventListener('pointerleave', function () { aim = null; });
+  hero.addEventListener('pointerdown', function (e) {
+    if (still) return;
+    aim = toCanvas(e);
+    var sx = shipX(), sy = 122 + lift * .3;
+    bolts.push({ fx: sx - 30, fy: sy + 5, tx: aim.x, ty: aim.y, t: 0 }, { fx: sx + 30, fy: sy + 5, tx: aim.x, ty: aim.y, t: 0 });
+  });
+
+  // The span demo: a wall receding to the right, textured with true perspective only
+  // at the ends of each run, as the game's mapper does.
+  var sc = document.getElementById('spans'), sg = sc.getContext('2d'), SW = sc.width, SH = sc.height;
+  var simg = sg.createImageData(SW, SH), sp = simg.data, panel = new Uint8Array(4096);
+  for (var y2 = 0; y2 < 64; y2++) for (var x2 = 0; x2 < 64; x2++)
+    panel[y2 << 6 | x2] = (x2 % 32 < 2 || y2 % 16 < 2) ? 3 : ((x2 + y2 * 3) & 15) < 2 ? 2 : ((x2 >> 3) ^ (y2 >> 3)) & 1;
+  var wall = [[52, 112, 118], [74, 138, 140], [150, 118, 88], [226, 205, 120]];
+  var choices = [1, 4, 16, 64, 160], choice = 2;
+  function persp(x) {
+    var t = x / SW, iz = 1 + t * (1 / 7 - 1), zz = 1 / iz;
+    return { u: t / 7 * zz * 900, z: zz };
+  }
+  function spans(ms) {
+    var N = choices[choice], scroll = ms * .03;
+    sp.fill(0);
+    for (var i = 3; i < sp.length; i += 4) sp[i] = 255;
+    for (var y = 0; y < SH; y++) {
+      var cy = y - SH / 2;
+      for (var x0 = 0; x0 < SW; x0 += N) {
+        var x1 = Math.min(SW, x0 + N), a = persp(x0), b = persp(x1);
+        var u0 = a.u + scroll, u1 = b.u + scroll, v0 = cy * a.z * .42 + 32, v1 = cy * b.z * .42 + 32;
+        for (var x = x0; x < x1; x++) {
+          var t = (x - x0) / (x1 - x0), z = 1 / (1 + (x / SW) * (1 / 7 - 1));
+          if (Math.abs(cy) > SH * .46 / z) continue;
+          var tu = (u0 + (u1 - u0) * t) & 63, tv = (v0 + (v1 - v0) * t) & 63;
+          var col = wall[panel[tv << 6 | tu]], l = 1 - Math.min(.65, z / 9), i2 = (y * SW + x) * 4;
+          sp[i2] = col[0] * l; sp[i2 + 1] = col[1] * l; sp[i2 + 2] = col[2] * l;
+        }
+      }
+    }
+    sg.putImageData(simg, 0, 0);
+  }
+  var notes = ['True perspective at every pixel: correct, and far too slow for a 1995 PC.', 'Nearly perfect, at four times the game\'s divides.',
+    'The game\'s setting. 20 divides per row on this 320-pixel wall.', 'Cheap, but the panels start to bend.', 'Two divides per row. The wall visibly warps.'];
+  var input = document.getElementById('spacing');
+  input.addEventListener('input', function () {
+    choice = +input.value;
+    document.getElementById('spacingOut').textContent = choices[choice] + ' px';
+    document.getElementById('spacingNote').textContent = notes[choice];
+    spans(performance.now());
+  });
+
+  frame(0); spans(0);
+  if (still) return;
+  var heroOn = true, demoOn = false;
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (e) { heroOn = e[0].isIntersecting; }).observe(hero);
+    new IntersectionObserver(function (e) { demoOn = e[0].isIntersecting; }).observe(sc);
+  } else demoOn = true;
+  var last = 0;
+  function tick(t) {
+    if (t - last > 66) { last = t; if (heroOn) frame(t); if (demoOn) spans(t); }   // 15 fps, like the cutscenes
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();
+</script>

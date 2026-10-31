@@ -1,0 +1,75 @@
+diff --git a/tools/lift/lift32.py b/tools/lift/lift32.py
+index 7d4040e..13569ba 100644
+--- a/tools/lift/lift32.py
++++ b/tools/lift/lift32.py
+@@ -1594,7 +1594,7 @@ class Lifter:
+                         lines.append(f"fp_push(*(float*)&{val}); {comment}")
+                     elif ops[0].size == 8:
+                         addr = self._fmt_mem_addr(ops[0].mem)
+-                        lines.append(f"fp_push(*(double*)ADDR({addr})); {comment}")
++                        lines.append(f"fp_push(MEMD({addr})); {comment}")
+                     else:
+                         addr = self._fmt_mem_addr(ops[0].mem)
+                         lines.append(f"fp_push(fp_ld80((const uint8_t*)ADDR({addr}))); {comment}")
+@@ -1620,9 +1620,9 @@ class Lifter:
+                 if ops[0].type == X86_OP_MEM:
+                     addr = self._fmt_mem_addr(ops[0].mem)
+                     if ops[0].size == 4:
+-                        lines.append(f"{{ float _v = (float)fp_pop(); *(float*)ADDR({addr}) = _v; }} {comment}")
++                        lines.append(f"{{ float _v = (float)fp_pop(); MEMF({addr}) = _v; }} {comment}")
+                     elif ops[0].size == 8:
+-                        lines.append(f"{{ double _v = fp_pop(); *(double*)ADDR({addr}) = _v; }} {comment}")
++                        lines.append(f"{{ double _v = fp_pop(); MEMD({addr}) = _v; }} {comment}")
+                     else:
+                         lines.append(f"fp_st80((uint8_t*)ADDR({addr}), fp_pop()); {comment}")
+                 else:
+@@ -1637,9 +1637,9 @@ class Lifter:
+             if ops and ops[0].type == X86_OP_MEM:
+                 addr = self._fmt_mem_addr(ops[0].mem)
+                 if ops[0].size == 4:
+-                    lines.append(f"{{ float _v = (float)_st[0]; *(float*)ADDR({addr}) = _v; }} {comment}")
++                    lines.append(f"{{ float _v = (float)_st[0]; MEMF({addr}) = _v; }} {comment}")
+                 elif ops[0].size == 8:
+-                    lines.append(f"*(double*)ADDR({addr}) = _st[0]; {comment}")
++                    lines.append(f"MEMD({addr}) = _st[0]; {comment}")
+             elif ops:
+                 # fst st(i): ST(i) <- ST(0), no pop. It used to lift to nothing,
+                 # silently: Shadows of the Empire keeps 1/z in st(1) this way
+@@ -2220,9 +2220,9 @@ class Lifter:
+         if op.type == X86_OP_MEM:
+             addr = self._fmt_mem_addr(op.mem)
+             if op.size == 4:
+-                return f"(double)*(float*)ADDR({addr})"
++                return f"(double)MEMF({addr})"
+             elif op.size == 8:
+-                return f"*(double*)ADDR({addr})"
++                return f"MEMD({addr})"
+             return f"(double)MEM32({addr})"
+         elif op.type == X86_OP_REG:
+             # ST(i) register
+diff --git a/tools/pe/pe_analyze.py b/tools/pe/pe_analyze.py
+index 65fb0df..b25e08c 100644
+--- a/tools/pe/pe_analyze.py
++++ b/tools/pe/pe_analyze.py
+@@ -422,12 +422,19 @@ def _analyze_with_struct(filepath: str, info: PEInfo) -> None:
+                         dll_name = '???'
+                     info.import_dlls.append(dll_name)
+ 
+-                    # Walk ILT / IAT entries
++                    # Walk the ILT (or IAT if there's no separate ILT) to resolve each
++                    # entry's name/ordinal, but always record the IAT's (FirstThunk's)
++                    # RVA as the patchable slot: that's the table the compiled code
++                    # actually calls through and the loader overwrites with the real
++                    # resolved address. The ILT is read-only hint/name data for the
++                    # loader; recording its RVA instead means "patching" a table
++                    # nothing ever calls through, leaving the real IAT slot holding
++                    # its raw on-disk value (an RVA back into the hint/name data).
+                     lookup_rva = ilt_rva if ilt_rva else iat_rva_base
+                     if lookup_rva:
+                         loff = rva_to_offset(lookup_rva)
+                         if loff:
+-                            slot_rva = lookup_rva
++                            slot_rva = iat_rva_base
+                             p = loff
+                             while True:
+                                 entry = struct.unpack_from('<I', data, p)[0]

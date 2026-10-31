@@ -1,0 +1,84 @@
+
+========================================================================
+  PE Analysis: FURY3.EXE
+  Path: D:\recomp\pc\fury3\analysis\FURY3.EXE
+  Size: 645,120 bytes
+========================================================================
+
+  Machine:       i386
+  Format:        PE32 (EXE)
+  Image Base:    0x00400000
+  Entry Point:   0x00453081 (RVA 0x00053081)
+  Linker:        2.55
+  Subsystem:     Windows GUI
+  Timestamp:     1995-08-14 19:30:26 UTC (0x302FA452)
+  Code Range:    0x00401000 - 0x0045E84A (383,050 bytes)
+  Data Range:    0x0053A000 - 0x00546084 (49,284 bytes)
+
+  Sections (7):
+    .text     VA 0x00001000  VSize 0x0005D84A  Raw 0x00000400  RSize 0x0005DA00  [CODE|EXEC|READ]
+    .bss      VA 0x0005F000  VSize 0x000DA94C  Raw 0x00000000  RSize 0x00000000  [UDATA|READ|WRITE]
+    .rdata    VA 0x0013A000  VSize 0x00000361  Raw 0x0005DE00  RSize 0x00000400  [IDATA|READ]
+    .data     VA 0x0013B000  VSize 0x00009F20  Raw 0x0005E200  RSize 0x0000A000  [IDATA|READ|WRITE]
+    .idata    VA 0x00145000  VSize 0x00001084  Raw 0x00068200  RSize 0x00001200  [IDATA|READ|WRITE]
+    .rsrc     VA 0x00147000  VSize 0x0002BEEE  Raw 0x00069400  RSize 0x0002C000  [IDATA|READ]
+    .reloc    VA 0x00173000  VSize 0x00008311  Raw 0x00095400  RSize 0x00008400  [IDATA|READ]
+
+  Imports: 160 functions from 5 DLLs
+
+    GDI32.dll (20 functions):
+      0x00545320  DeleteObject
+      0x00545324  StretchBlt
+      0x00545328  SetStretchBltMode
+      0x0054532C  BitBlt
+      0x00545330  SetDIBColorTable
+      0x00545334  CreatePalette
+      0x00545338  GetSystemPaletteEntries
+      0x0054533C  CreateDIBSection
+      0x00545340  SelectObject
+      0x00545344  CreateCompatibleDC
+      ... and 10 more
+
+    KERNEL32.dll (61 functions):
+      0x00545374  lstrcpyA
+      0x00545378  GlobalAlloc
+      0x0054537C  GlobalLock
+      0x00545380  FindResourceA
+      0x00545384  lstrlenA
+      0x00545388  GlobalFree
+      0x0054538C  WritePrivateProfileStringA
+      0x00545390  GetPrivateProfileStringA
+      0x00545394  GetPrivateProfileIntA
+      0x00545398  GetModuleHandleA
+      ... and 51 more
+
+    USER32.dll (60 functions):
+      0x0054546C  GetDlgItemTextA
+      0x00545470  SetRectEmpty
+      0x00545474  UpdateWindow
+      0x00545478  EnableMenuItem
+      0x0054547C  GetFocus
+      0x00545480  GetParent
+      0x00545484  ShowCursor
+      0x00545488  SetCursorPos
+      0x0054548C  SetCursor
+      0x00545490  GetDC
+      ... and 50 more
+
+    WINMM.dll (16 functions):
+      0x00545560  waveOutOpen
+      0x00545564  mciGetErrorStringA
+      0x00545568  mciSendStringA
+      0x0054556C  joyGetNumDevs
+      0x00545570  waveOutReset
+      0x00545574  waveOutUnprepareHeader
+      0x00545578  waveOutWrite
+      0x0054557C  waveOutGetNumDevs
+      0x00545580  waveOutGetDevCapsA
+      0x00545584  waveOutClose
+      ... and 6 more
+
+    comdlg32.dll (3 functions):
+      0x005455A4  GetSaveFileNameA
+      0x005455A8  CommDlgExtendedError
+      0x005455AC  GetOpenFileNameA
